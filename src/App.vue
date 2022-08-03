@@ -24,11 +24,12 @@
       <tr v-for="c in response.filter(({ account }) => !ignoreList.includes(account))" :key="c.account">
         <td>{{ c.account }}</td>
         <td>{{ c.count }}</td>
-        <ul>
-          <li v-for="col in c.collections" :key="col.class_id">
-          {{ col.iscn_id_prefix }}: <strong>{{ col.count }}</strong> x {{ col.price }} LIKE
-          </li>
-        </ul>
+        <table>
+          <tr v-for="col in c.collections" :key="col.class_id">
+            <td><a :href="col.external_url" target="_blank">{{ col.name }}</a></td>
+            <td><strong>{{ col.count }}</strong> x {{ col.price }}</td>
+          </tr>
+        </table>
         <td>{{ c.totalValue }} LIKE</td>
       </tr>
     </table>
@@ -41,7 +42,7 @@ import axios from 'axios';
 import {
   INDEXER, IGNORE_LIST,
 } from './config';
-import getClass from './proxy';
+import { getClass, getMetadata } from './proxy';
 
 export default {
   name: 'NftSocialGraph',
@@ -91,31 +92,36 @@ export default {
         };
         a.collections.forEach(
           ({ iscn_id_prefix, class_id, count }) => {
+            let collection = {
+              iscn_id_prefix,
+              class_id,
+              count,
+            }
             promises.push(
               getClass(class_id)
               .then((res) => {
                 const {
                   lastSoldPrice: price,
                 } = res.data;
-                account.collections.push({
-                  iscn_id_prefix,
-                  class_id,
-                  count,
-                  price,
-                  totalValue: count * price,
-                });
+                collection.price = price;
+                collection.totalValue = count * price;
                 account.totalValue += count * price;
+                return getMetadata(class_id)
+              })
+              .then((res) => {
+                collection = {
+                  ...collection,
+                  ...res.data,
+                }
               })
               .catch((err) => {
-                console.log(err.message, iscn_id_prefix, class_id);
-                account.collections.push({
-                  iscn_id_prefix,
-                  class_id,
-                  count,
-                  price: 0,
-                  totalValue: 0,
-                });
-              }),
+                console.error(err.message, iscn_id_prefix, class_id);
+                collection.price = 0;
+                collection.totalValue = 0;
+              })
+              .finally(() => {
+                account.collections.push(collection)
+              })
             );
           },
         );
@@ -136,5 +142,12 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+table, th, td {
+  border: 1px solid;
 }
 </style>
