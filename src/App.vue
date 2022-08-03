@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div id="app">
     <h1>Writing NFT Social Graph</h1>
     <div>
       <label>
@@ -13,7 +13,6 @@
       </label>
       <button v-on:click="load()">Load</button>
     </div>
-    <p>{{ type }} {{ account }}</p>
     <h3 v-if="responseType">{{ responseType }} of {{ account }}</h3>
     <table v-if="response">
       <tr>
@@ -33,27 +32,31 @@
         <td>{{ c.totalValue }} LIKE</td>
       </tr>
     </table>
+    <p v-else>No response</p>
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+import {
+  INDEXER, API_PUBLIC, IGNORE_LIST,
+} from './config';
 
 export default {
   name: 'NftSocialGraph',
   data() {
     return {
       type: 'collector',
-      account: 'like1qv66yzpgg9f8w46zj7gkuk9wd2nrpqmca3huxf',
+      account: 'like13f4glvg80zvfrrs7utft5p68pct4mcq7t5atf6',
       responseType: '',
       response: [],
-      ignoreList: ['like1yney2cqn5qdrlc50yr5l53898ufdhxafqz9gxp'],
+      ignoreList: IGNORE_LIST,
     }
   },
   methods: {
     async load() {
       if (this.type === 'collector') {
-        const res = await axios.get('/likechain/likenft/v1/collector', {
+        const res = await axios.get(INDEXER+'/likechain/likenft/v1/collector', {
           params: {
             creator: this.account,
             reverse: true,
@@ -64,7 +67,7 @@ export default {
         this.response = await this.aggregate(this.response);
       }
       if (this.type === 'creator') {
-        const res = await axios.get('/likechain/likenft/v1/creator', {
+        const res = await axios.get(INDEXER+'/likechain/likenft/v1/creator', {
           params: {
             collector: this.account,
             reverse: true,
@@ -78,7 +81,7 @@ export default {
     async aggregate(accounts) {
       const promises = [];
       const newAccounts = [];
-      accounts.forEach((a) => {
+      accounts.filter(a => !this.ignoreList.includes(a.account)).forEach((a) => {
         const account = {
           account: a.account,
           collections: [],
@@ -88,7 +91,7 @@ export default {
         a.collections.forEach(
           ({ iscn_id_prefix, class_id, count }) => {
             promises.push(
-              axios.get('https://api.rinkeby.like.co/likernft/purchase', {
+              axios.get(API_PUBLIC+'/likernft/purchase', {
                 params: {
                   iscn_id: iscn_id_prefix,
                   class_id,
