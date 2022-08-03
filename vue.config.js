@@ -4,4 +4,5 @@ module.exports = defineConfig({
   devServer: {
     proxy: 'http://localhost:8997',
   },
+  publicPath: '/likenft-social-graph/',
 })
