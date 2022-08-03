@@ -39,8 +39,9 @@
 <script>
 import axios from 'axios';
 import {
-  INDEXER, API_PUBLIC, IGNORE_LIST,
+  INDEXER, IGNORE_LIST,
 } from './config';
+import getClass from './proxy';
 
 export default {
   name: 'NftSocialGraph',
@@ -91,12 +92,7 @@ export default {
         a.collections.forEach(
           ({ iscn_id_prefix, class_id, count }) => {
             promises.push(
-              axios.get(API_PUBLIC+'/likernft/purchase', {
-                params: {
-                  iscn_id: iscn_id_prefix,
-                  class_id,
-                }
-              })
+              getClass(class_id)
               .then((res) => {
                 const {
                   lastSoldPrice: price,
